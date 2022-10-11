@@ -19,7 +19,7 @@ const vitePressVersion = devDependencies.vitepress;
 
 <style>
 .site-footer {
-    color: #888;
+    color: var(--vp-c-text-2);
     text-align: center;
     font-size: 0.75rem;
     width: 100%;

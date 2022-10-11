@@ -8,7 +8,7 @@
                 {{ article.frontMatter.date }}
             </time>
         </div>
-        <p class="describe" v-html="article.frontMatter.description">
+        <p class="describe" v-if="article.frontMatter.description" v-html="article.frontMatter.description">
         </p>
     </div>
 
@@ -26,11 +26,12 @@
 
 <script lang="ts" setup>
 import { withBase } from 'vitepress'
-const props = defineProps({
-    posts: Array,
-    pageCurrent: Number,
-    pagesNum: Number
-})
+import { Post } from '../functions';
+const props = defineProps<{
+    posts: Post[],
+    pageCurrent: number,
+    pagesNum: number
+}>()
 </script>
 
 <style scoped>

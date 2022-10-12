@@ -1,10 +1,13 @@
 ---
 title: Rust 学习笔记 (1)
 date: 2022-10-11
+outline: deep
 ---
-## UnCategorized
-对于一个可变变量而言，不管引用是可变还是不可变的，都不能在引用的作用域内直接修改变量
+:::info 提示
+在非必要情况下，本笔记的代码块中都默认省略`main`函数的定义
+:::
 
+## UnCategorized
 结构体实例不能调用关联函数（顾名思义，仅仅只是和结构体有关联的函数而非方法，不存在于结构体实例中）
 
 `trait`中`Self`代指实现方
@@ -26,8 +29,11 @@ Array的引用可以当作Slice来使用，同时Array可以调用Slice的所有
 
 只有loop中的break才能指定返回值，在while结构或for迭代结构中使用的break不具备该功能
 
+## 变量
+在Rust中，“赋值”这一行为更确切的说法为“绑定”，但两者在日常中可以混用，哪个好理解选哪个
+
 ## 栈与堆
-![](https://rust-book.junmajinlong.com/ch5/2020_12_23_1608733444541.png)
+![stack_and_heap](https://rust-book.junmajinlong.com/ch5/2020_12_23_1608733444541.png)
 
 **1. 栈适合存放存活时间短的数据**
 
@@ -116,15 +122,19 @@ Copy 与 Clone 在**默认实现**上的区别：
 
 也就是说，Copy是浅拷贝，Clone是深拷贝，Rust会对每个字段每个元素递归调用clone()，直到最底部。
 
-## 引用
+## 引用与借用
 引用分两种：
 - 不可变引用（读）`&s`
 - 可变引用（读写）`&mut s`
 
+我们把创建引用的行为称之为“借用”
+
+多个不可变引用可共存（可同时读）
 ```rust
 let s = "hello".to_string();
 let s1 = &s;
-println!("{}", s1);// 输出：hello
+let s2 = &s;
+println!("s1: {}, s2: {}", s1, s2);// 输出：s1: hello, s2: hello
 ```
 
 可变引用需要引用的对象本身可变
@@ -136,7 +146,161 @@ println!("{}", s1);// 输出：hello world!
 ```
 
 ### 可变引用的排他性
-todo
+**1. 可变引用<u>同时</u>只能存在一个**
+
+这种限制的好处就是使 Rust 在编译期就避免数据竞争，数据竞争可由以下行为造成：
+
+- 两个或更多的指针同时访问同一数据
+- 至少有一个指针被用来写入数据
+- 没有同步数据访问的机制
+
+数据竞争会导致未定义行为，这种行为很可能超出我们的预期，难以在运行时追踪，并且难以诊断和修复。所以 Rust 会在编译期避免这些情况产生。
+
+**2. 可变引用与不可变引用不能<u>同时</u>存在**
+
+不可变引用的用户肯定不希望自己借用的东西被别人改变了，但多个不可变引用是允许的，因为它们没有能力修改数据。
+
+---
+
+上述两个规则的重点在于“同时”，即“同一时刻”。<br />
+也就是说，Rust 允许我们拥有多个可变（或可变+不可变）引用，只是不能**同时**拥有罢了
+
+如果还不能理解，可以通过下面的两个角度及其例子来理解。还是那句话，哪个好理解选哪个
+
+#### 从作用域角度理解
+在新编译器中（Rust 1.31后），引用作用域的结束位置从花括号（`}`）变成了**最后一次使用**的位置
+
+**也就是说，一个引用的作用域从声明的地方开始一直持续到最后一次使用为止**
+
+下面是一个拥有多个可变引用的错误示例：
+```rust
+let mut s = String::from("a");
+
+let s1 = &mut s; // s1作用域开始
+ss1.push_str("b");
+let s2 = &mut s; // s2作用域开始并结束
+
+println!("{}", s1); // s1作用域结束
+// println!("{}, {}", s1, s2); 同理，只不过s2的作用域延长到此处了，可能更好理解一点
+```
+错误信息如下：
+```text
+error[E0499]: cannot borrow `s` as mutable more than once at a time 同一时间无法对 `s` 进行两次可变借用
+ --> src/main.rs:6:12
+  |
+4 |   let s1 = &mut s;
+  |            ------ first mutable borrow occurs here 首个可变引用在这里借用
+5 |   s1.push_str("b");
+6 |   let s2 = &mut s;
+  |            ^^^^^^ second mutable borrow occurs here 第二个可变引用在这里借用
+7 |
+8 |   println!("{}", s1);
+  |                  -- first borrow later used here 第一个借用在这里使用
+```
+因为可变引用`s1`和`s2`的作用域发生**重叠**，所以这段代码无法通过编译
+
+要解决这个问题，可以试试这样
+```rust
+let mut s = String::from("a");
+
+let s1 = &mut s;
+s1.push_str("b");
+println!("{}", s1); // s1作用域结束，输出：ab
+
+let s2 = &mut s; // s2作用域开始
+s2.push_str("c");
+println!("{}", s1); // s2作用域结束，输出：abc
+```
+因为可变引用`s1`和`s2`的作用域并没有**重叠**，所以这段代码是可以通过编译的
+
+对于可变+不可变引用也是同理，下面是一个错误示例
+```rust
+let mut s = String::from("hello");
+
+let r1 = &s; // r1作用域开始
+let r2 = &s; // r2作用域开始
+let r3 = &mut s; // r3作用域开始
+
+println!("{}, {}, and {}", r1, r2, r3);// r1 r2 r3作用域结束
+```
+错误信息如下
+```text
+error[E0502]: cannot borrow `s` as mutable because it is also borrowed as immutable
+              无法借用可变 `s` 因为它已经被借用了不可变
+ --> src/main.rs:6:12
+  |
+4 |   let r1 = &s; // r1作用域开始
+  |            -- immutable borrow occurs here 不可变借用发生在这里
+5 |   let r2 = &s; // r2作用域开始
+6 |   let r3 = &mut s; // r3作用域开始
+  |            ^^^^^^ mutable borrow occurs here 可变借用发生在这里
+7 |
+8 |   println!("{}, {}, and {}", r1, r2, r3);// r1 r2 r3作用域结束
+  |                              -- immutable borrow later used here 不可变借用在这里使用
+```
+因为可变引用`r3`和不可变引用`r1` `r2`的作用域发生**重叠**，所以无法通过编译
+
+解决方法也很简单
+```rust
+let mut s = String::from("hello");
+
+let r1 = &s; // r1作用域开始
+let r2 = &s; // r2作用域开始
+
+println!("{} and {}", r1, r2); // r1 r2作用域结束，输出：hello and hello
+
+let r3 = &mut s; // r3作用域开始
+println!("{}", r3) // r3作用域结束，输出：hello
+```
+
+::: details Note
+编译器在作用域结束之前判断不再使用的引用的能力被称为 **非词法作用域生命周期**（Non-Lexical Lifetimes，简称 NLL）
+
+你可以在[这里](https://blog.rust-lang.org/2018/12/06/Rust-1.31-and-rust-2018.html#non-lexical-lifetimes)找到它的更多信息
+:::
+#### 从读写锁角度理解
+个人感觉和作用域的角度有些相似，但篇幅有点长，不想写了，详见[此处](https://rust-book.junmajinlong.com/ch6/04_understand_mutable_ref.html)
+
+#### 关于原始变量
+
+需要注意的是，对于一个可变变量而言，不管引用是可变还是不可变的，都不能在引用的作用域内修改原始变量
+
+错误示例：
+```rust
+let mut s = String::from("hello");
+
+let r = &s;
+
+s = "s".to_string();
+
+println!("{}", r);
+```
+```rust
+let mut s = String::from("hello");
+
+let r = &mut s;
+
+s = "s".to_string();
+
+println!("{}", r);
+```
+错误信息如下：
+```text
+error[E0506]: cannot assign to `s` because it is borrowed 不能对`s`赋值，因为它被借用
+ --> src/main.rs:6:3
+  |
+4 |   let r = &s;
+  |           -- borrow of `s` occurs here `s`的借用发生在这里
+5 |
+6 |   s = "s".to_string();
+  |   ^ assignment to borrowed `s` occurs here 对`s`的赋值发生在这里
+7 |
+8 |   println!("{}", r);
+  |                  - borrow later used here 借用在这里使用
+```
+
+可以这么理解：因为原始变量可变，所以可变引用的排他性规则同样适用于原始变量本身
+
 ## 定义方式
 ```rust
 fn NAME<GENERIC: TRAIT, const GENERIC: TYPE>() {}

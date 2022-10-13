@@ -13,7 +13,7 @@ export async function getPosts(): Promise<Post[]> {
             data.date = _convertDate(data.date)
             return {
                 frontMatter: data as Post['frontMatter'],
-                regularPath: `/${item.replace('.md', '.html')}`
+                regularPath: `/${item.replace('.md', '')}`
             }
         })
     )
@@ -35,7 +35,7 @@ export async function generatePaginationPages(pageSize: number) {
             const page = `
 ---
 date: 2021-06-30
-title: ${i === 1 ? 'home' : 'page_' + i}
+title: ${i === 1 ? 'Home' : 'Page_' + i}
 sidebar: false
 ---
 <script setup>

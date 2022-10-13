@@ -1,6 +1,6 @@
 ---
 date: 2021-06-30
-title: page_2
+title: Page_2
 sidebar: false
 ---
 <script setup>

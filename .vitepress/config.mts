@@ -6,9 +6,11 @@ const getConfig = async () => {
     await generatePaginationPages(pageSize);
     return defineThemeConfig({
         title: 'Paracosm',
+        lang: 'zh-CN',
         base: '/',
         outDir: './dist',
         lastUpdated: true,
+        cleanUrls: 'with-subfolders',
         description: 'A harbor for a pessimist.',
         head: [
             ['link', { rel: 'icon', href: 'https://bu.dusays.com/2022/10/11/63458aaaae4aa.png' }]

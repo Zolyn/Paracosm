@@ -1,5 +1,7 @@
 import { defineThemeConfig } from "./theme/functions";
 import { generatePaginationPages, getPosts } from "./theme/serverUtils";
+import { sidebar } from './sidebar'
+import { nav } from './nav'
 
 const getConfig = async () => {
     const pageSize = 3;
@@ -20,12 +22,6 @@ const getConfig = async () => {
             website: 'https://blog.zorin.icu',
             outline: [2,3],
             outlineTitle: 'Toc',
-            nav: [
-                { text: 'Home', link: '/' },
-                { text: 'Archives', link: '/pages/archives' },
-                { text: 'Tags', link: '/pages/tags' },
-                { text: 'About', link: '/pages/about' }
-            ],
             editLink: {
                 pattern: 'https://github.com/Zolyn/Paracosm/edit/main/:path',
                 text: 'Edit this page on GitHub'
@@ -40,6 +36,8 @@ const getConfig = async () => {
                 message: 'MIT and CC-BY-NC 4.0 Licensed',
                 copyright: 'Copyright © 2020-PRESENT Yumeoto Zorin'
             },
+            nav,
+            sidebar,
             pageSize,
         },
         vite: {

@@ -12,6 +12,10 @@ export const sidebar: DefaultTheme.Sidebar = {
                 {
                     text: '2',
                     link: '/notes/rust/2'
+                },
+                {
+                    text: '3',
+                    link: '/notes/rust/3'
                 }
             ]
         }

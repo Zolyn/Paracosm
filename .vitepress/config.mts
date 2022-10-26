@@ -33,7 +33,7 @@ const getConfig = async () => {
                 }
             ],
             footer: {
-                message: 'MIT and CC-BY-NC 4.0 Licensed',
+                message: 'MIT and CC BY-NC-SA 4.0 Licensed',
                 copyright: 'Copyright © 2020-PRESENT Yumeoto Zorin'
             },
             nav,
